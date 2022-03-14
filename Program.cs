@@ -15,20 +15,25 @@ namespace CadDev
                 Console.WriteLine("Hello world");
             }
 
-            using (CadWindow wnd = new CadWindow(new OpenTK.Windowing.Desktop.GameWindowSettings()
+            CadWindow wnd = new CadWindow(new OpenTK.Windowing.Desktop.GameWindowSettings()
                         {
-                            RenderFrequency = 60
+                            RenderFrequency = 60,
+                            UpdateFrequency = 60
                         },
                         new OpenTK.Windowing.Desktop.NativeWindowSettings()
                         {
                             IsFullscreen = true,
-                            API = OpenTK.Windowing.Common.ContextAPI.OpenGL,
-                            APIVersion = new Version(3, 2)
+                            //API = OpenTK.Windowing.Common.ContextAPI.OpenGL,
+                            //APIVersion = new Version(1, 1),
+                            Profile = OpenTK.Windowing.Common.ContextProfile.Core,
+                            Size = new OpenTK.Mathematics.Vector2i(640, 480),
+                            Location = new OpenTK.Mathematics.Vector2i(100, 100),
+                            IsEventDriven = false
                         }
-                    ))
-            {
-                wnd.Run();
-            }
+                    );
+            
+
+            wnd.Run();
 
         }
     }

@@ -5,6 +5,10 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+
+// git@github.com:georgetsyrkov/cad-dev-22.git
+
 
 namespace CadDev
 {
@@ -17,13 +21,22 @@ namespace CadDev
 
         }
 
+        private Matrix4 _view;
+        private Matrix4 _projection;
+
         // A simple vertex shader possible. Just passes through the position vector.
         const string VertexShaderSource = @"
             #version 330
+            
             layout(location = 0) in vec4 position;
+            
+            uniform mat4 view;
+            uniform mat4 projection;
+            
             void main(void)
             {
                 gl_Position = position;
+                gl_Position = projection * view * position;
             }
         ";
 
@@ -40,17 +53,74 @@ namespace CadDev
         // Points of a triangle in normalized device coordinates.
         readonly float[] Points = new float[] {
             // X, Y, Z, W
-            -0.5f, 0.0f, 0.0f, 1.0f,
-            0.5f, 0.0f, 0.0f, 1.0f,
-            0.0f, 0.5f, 0.0f, 1.0f };
+            -50f, 0.0f, -10.0f, 1.0f,
+            50f, 0.0f, -10.0f, 1.0f,
+            0.0f, 50f, -10.0f, 1.0f };
 
-
-            
         int VertexShader;
         int FragmentShader;
         int ShaderProgram;
         int VertexBufferObject;
         int VertexArrayObject;
+
+
+        private bool _isFirstMouseMove = true;
+        private Vector2 _previousMousePosition;
+        private float _mouseSensitivity = 0.004f;
+        private float _maxRotationSpeed = 0.1f;
+
+        public Vector3 UpDirection => _pivot.YAxisPositiveDirection;
+        public Vector3 RightDirection => _pivot.XAxisPositiveDirection;
+
+        public void ProcessMouseMovement(MouseState mouseState)
+        {
+            if (_isFirstMouseMove)
+            {
+                _previousMousePosition = new Vector2(mouseState.X, mouseState.Y);
+                _isFirstMouseMove = false;
+            }
+            else
+            {
+                var (x, y) = (mouseState.Position - _previousMousePosition) * -_mouseSensitivity;
+
+                x = MathHelper.Clamp(x, -_maxRotationSpeed, _maxRotationSpeed);
+                y = MathHelper.Clamp(y, -_maxRotationSpeed, _maxRotationSpeed);
+                _previousMousePosition = mouseState.Position;
+                RotateViewDirection(x, UpDirection);
+                RotateViewDirection(y, RightDirection);
+            }
+        }
+
+        private readonly Pivot _pivot = new Pivot();
+        public void RotateViewDirection(float angle, Vector3 vector)
+        {
+            _pivot.LocalRotate(angle, vector);
+            UpdateViewMatrix();
+        }
+
+        private void UpdateViewMatrix()
+        {
+            _view = Matrix4.LookAt(_pivot.Position, _pivot.Position + _pivot.ZAxisPositiveDirection * -1,
+                    _pivot.YAxisPositiveDirection);
+        }
+
+        private float _fov = MathHelper.PiOver3;    // Угол поля зрения в направлении оси OY (в радианах).
+        private float _distanceToTheNearClipPlane = 0.01f;
+        private float _distanceToTheFarClipPlane = 100.0f;
+        private float _viewportAspectRatio;
+        private void UpdateProjectionMatrix()
+        {
+            _projection = Matrix4.CreatePerspectiveFieldOfView(_fov, _viewportAspectRatio, 
+                    _distanceToTheNearClipPlane, _distanceToTheFarClipPlane);
+        }
+
+        private void UpdateViewportAspectRatio()
+        {
+            var Width = ClientRectangle.Size.X;
+            var Height = ClientRectangle.Size.Y;
+
+            _viewportAspectRatio = Width / (float)Height;
+        }
 
         protected override void OnLoad()
         {
@@ -89,6 +159,10 @@ namespace CadDev
             // Set the clear color to blue
             GL.ClearColor(0.0f, 0.0f, 1.0f, 0.0f);
 
+            this.UpdateViewportAspectRatio();
+            this.UpdateProjectionMatrix();
+            this.UpdateViewMatrix();
+
             base.OnLoad();
         }
 
@@ -119,8 +193,6 @@ namespace CadDev
             base.OnResize(e);
         }
 
-        float z = 4f;
-
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             GL.ClearColor(0.3f, 0.3f, 0.5f, 1.0f);
@@ -132,6 +204,13 @@ namespace CadDev
             GL.BindVertexArray(VertexArrayObject);
             // Use/Bind the program
             GL.UseProgram(ShaderProgram);
+
+            var viewLocation = GL.GetAttribLocation(ShaderProgram, "view");
+            GL.UniformMatrix4(viewLocation, false, ref _view);
+
+            var projectionLocation = GL.GetAttribLocation(ShaderProgram, "projection");
+            GL.UniformMatrix4(projectionLocation, false, ref _projection);
+
             // This draws the triangle.
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
 

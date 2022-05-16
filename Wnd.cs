@@ -8,16 +8,13 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
-
 namespace CadDev
 {
     public class CadWindow : OpenTK.Windowing.Desktop.GameWindow
     {
-        Matrix4 model;
-        Matrix4 view;
+        Matrix4 model = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(-55.0f));
+        Matrix4 view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f);
         Matrix4 projection;
-
-        float speed = 1.5f;
 
         Vector3 position = new Vector3(0.0f, 0.0f,  3.0f);
         Vector3 front = new Vector3(0.0f, 0.0f, -1.0f);
@@ -25,18 +22,15 @@ namespace CadDev
 
         Vector2 lastPos;
 
+        Shader? shader;
+
         public CadWindow(GameWindowSettings gameWindowSettings, 
                          NativeWindowSettings nativeWindowSettings) : 
                          base(gameWindowSettings, nativeWindowSettings)
         {
-                CursorVisible = false;
-                CursorGrabbed = true;
 
-            model = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(-55.0f));
-            view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f);
         }
 
-        // Points of a triangle in normalized device coordinates.
         readonly float[] Points = new float[] {
             //  X,     Y,    Z, (W)
             -0.5f, -0.5f, 0.0f, //Bottom-left vertex
@@ -47,17 +41,15 @@ namespace CadDev
         int VertexBufferObject;
         int VertexArrayObject;
 
-        Shader shader;        
-
         protected override void OnLoad()
         {   
-            GL.ClearColor(0.0f, 0.0f, 1.0f, 0.0f);
+            GL.ClearColor(0.15f, 0.15f, 0.15f, 0.0f);
+
+            shader = new Shader("shader.vert", "shader.frag");
 
             VertexBufferObject = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferObject);
             GL.BufferData(BufferTarget.ArrayBuffer, Points.Length * sizeof(float), Points, BufferUsageHint.StaticDraw);
-
-            shader = new Shader("shader.vert", "shader.frag");
 
             VertexArrayObject = GL.GenVertexArray();
             GL.BindVertexArray(VertexArrayObject);
@@ -72,7 +64,8 @@ namespace CadDev
         {
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.DeleteBuffer(VertexBufferObject);
-            shader.Dispose();
+
+            if (shader != null) ((Shader)shader).Dispose();
 
             GL.BindVertexArray(0);
             GL.UseProgram(0);
@@ -89,7 +82,6 @@ namespace CadDev
 
             GL.Viewport(0, 0, Width, Height);
 
-
             projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45.0f), (float)((float)Width / (float)Height), 0.1f, 100.0f);
 
             base.OnResize(e);
@@ -99,13 +91,13 @@ namespace CadDev
         {
             GL.Clear(ClearBufferMask.ColorBufferBit);
 
-            shader.Use();
+            if (shader != null) ((Shader)shader).Use();
 
             view = Matrix4.LookAt(position, position + front, up);
 
-            shader.SetMatrix4("model", model);
-            shader.SetMatrix4("view", view);
-            shader.SetMatrix4("projection", projection);
+            if (shader != null) ((Shader)shader).SetMatrix4("model", model);
+            if (shader != null) ((Shader)shader).SetMatrix4("view", view);
+            if (shader != null) ((Shader)shader).SetMatrix4("projection", projection);
 
             GL.BindVertexArray(VertexArrayObject);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
@@ -120,65 +112,48 @@ namespace CadDev
             }
         }
 
-
         bool firstMove = true;
-        float sensitivity = 0.05f;
+        float sensitivity = 0.10f;
+        float speed = 5f;
         float yaw = -90;
         float pitch = 0;
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
-            if (!IsFocused) // check to see if the window is focused
-            {
-                return;
-            }
+            if (!IsFocused) { return; }
 
             if (KeyboardState.IsKeyDown(Keys.W))
             {
                 position += front * speed * (float)e.Time; //Forward 
             }
-
             if (KeyboardState.IsKeyDown(Keys.S))
             {
                 position -= front * speed * (float)e.Time; //Backwards
             }
-
             if (KeyboardState.IsKeyDown(Keys.A))
             {
                 position -= Vector3.Normalize(Vector3.Cross(front, up)) * speed * (float)e.Time; //Left
             }
-
             if (KeyboardState.IsKeyDown(Keys.D))
             {
                 position += Vector3.Normalize(Vector3.Cross(front, up)) * speed * (float)e.Time; //Right
             }
-
             if (KeyboardState.IsKeyDown(Keys.Space))
             {
                 position += up * speed * (float)e.Time; //Up 
             }
-
             if (KeyboardState.IsKeyDown(Keys.LeftShift))
             {
                 position -= up * speed * (float)e.Time; //Down
             }
-
-            //if (MouseState.WasButtonDown(MouseButton.Left))
-            //{
-            //    firstMove = true;
-            //}
-
             if (KeyboardState.IsKeyDown(Keys.C))
             {
                 firstMove = true;
                 yaw = -90;
                 pitch = 0;
-
-                view = Matrix4.LookAt(new Vector3(0,0,-3), new Vector3(0,0,0), up);
             }
 
-
-            if (MouseState.IsButtonDown(MouseButton.Left))// && KeyboardState.IsKeyDown(Keys.E))
+            if (MouseState.IsButtonDown(MouseButton.Left))
             {
                 if (firstMove)
                 {
@@ -187,7 +162,6 @@ namespace CadDev
                 }
                 else
                 {
-
                     float deltaX = MousePosition.X - lastPos.X;
                     float deltaY = MousePosition.Y - lastPos.Y;
 
@@ -208,20 +182,15 @@ namespace CadDev
                     }
                 }
             }
-
-            if (KeyboardState.IsKeyReleased(Keys.E))
+            else
             {
-                //CursorVisible = true;
-                //CursorGrabbed = false;
-                //firstMove = true;
+                firstMove = true;
             }
 
             front.X = (float)Math.Cos(MathHelper.DegreesToRadians(pitch)) * (float)Math.Cos(MathHelper.DegreesToRadians(yaw));
             front.Y = (float)Math.Sin(MathHelper.DegreesToRadians(pitch));
             front.Z = (float)Math.Cos(MathHelper.DegreesToRadians(pitch)) * (float)Math.Sin(MathHelper.DegreesToRadians(yaw));
             front = Vector3.Normalize(front);
-
-
         }
     }
 }

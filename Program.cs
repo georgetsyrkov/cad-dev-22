@@ -6,13 +6,21 @@ namespace CadDev
     {
         public static void Main(string[] args)
         {
-            if (args.Length > 0 && args[0].Trim().ToLower() == "ru")
+            bool fScreen = false;
+            if (args.Length > 0 && args[0].Trim().ToLower() == "full")
             {
-                Console.WriteLine("Привет мир");
+                fScreen = true;
             }
-            else
+
+            OpenTK.Windowing.Desktop.NativeWindowSettings sets = new OpenTK.Windowing.Desktop.NativeWindowSettings();
+            sets.Size = new OpenTK.Mathematics.Vector2i(640, 480);
+            sets.Location = new OpenTK.Mathematics.Vector2i(100, 100);
+
+            if (fScreen)
             {
-                Console.WriteLine("Hello world");
+                sets = new OpenTK.Windowing.Desktop.NativeWindowSettings();
+                sets.IsFullscreen = true;
+                sets.WindowState = OpenTK.Windowing.Common.WindowState.Fullscreen;
             }
 
             CadWindow wnd = new CadWindow(new OpenTK.Windowing.Desktop.GameWindowSettings()
@@ -20,19 +28,10 @@ namespace CadDev
                             RenderFrequency = 60,
                             UpdateFrequency = 60
                         },
-                        new OpenTK.Windowing.Desktop.NativeWindowSettings()
-                        {
-                            IsFullscreen = true,
-                            Profile = OpenTK.Windowing.Common.ContextProfile.Core,
-                            Size = new OpenTK.Mathematics.Vector2i(640, 480),
-                            Location = new OpenTK.Mathematics.Vector2i(100, 100),
-                            IsEventDriven = false
-                        }
+                        sets
                     );
-            
 
             wnd.Run();
-
         }
     }
 }

@@ -30,9 +30,12 @@ namespace CadDev
 
         Shader shader;
 
+        Matrix4 model;
+        Matrix4 view;
+        Matrix4 projection;
+
         protected override void OnLoad()
         {   
-            // Set the clear color to blue
             GL.ClearColor(0.0f, 0.0f, 1.0f, 0.0f);
 
             VertexBufferObject = GL.GenBuffer();
@@ -41,13 +44,21 @@ namespace CadDev
 
             shader = new Shader("shader.vert", "shader.frag");
 
-            // Create the vertex array object (VAO) for the program.
             VertexArrayObject = GL.GenVertexArray();
-            // Bind the VAO and setup the position attribute.
             GL.BindVertexArray(VertexArrayObject);
 
             GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3*sizeof(float), 0);
             GL.EnableVertexAttribArray(0);
+
+
+            Vector3 cameraPos = new Vector3(0.0f, 0.0f, 3.0f);
+            Vector3 cameraTarget = Vector3.Zero;
+            Vector3 cameraDirection = Vector3.Normalize(cameraPos - cameraTarget);
+
+            Vector3 up = Vector3.UnitY;
+            Vector3 cameraRight = Vector3.Normalize(Vector3.Cross(up, cameraDirection));
+            Vector3 cameraUp = Vector3.Cross(cameraDirection, cameraRight);
+
 
             base.OnLoad();
         }
@@ -71,8 +82,12 @@ namespace CadDev
             var Width = ClientRectangle.Size.X;
             var Height = ClientRectangle.Size.Y;
 
-            // Resize the viewport to match the window size.
             GL.Viewport(0, 0, Width, Height);
+
+            model = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(-55.0f));
+            view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f);
+            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45.0f), (float)((float)Width / (float)Height), 0.1f, 100.0f);
+
             base.OnResize(e);
         }
 
@@ -81,10 +96,14 @@ namespace CadDev
             GL.Clear(ClearBufferMask.ColorBufferBit);
 
             shader.Use();
+
+            shader.SetMatrix4("model", model);
+            shader.SetMatrix4("view", view);
+            shader.SetMatrix4("projection", projection);
+
             GL.BindVertexArray(VertexArrayObject);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
 
-            // Swap the front/back buffers so what we just rendered to the back buffer is displayed in the window.
             Context.SwapBuffers();
             base.OnRenderFrame(e);
 

@@ -12,7 +12,8 @@ namespace CadDev
 {
     public class CadWindow : OpenTK.Windowing.Desktop.GameWindow
     {
-        Matrix4 model = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(-55.0f));
+        //Matrix4 model = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(-55.0f));
+        Matrix4 model = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(0f));
         Matrix4 view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f);
         Matrix4 projection;
 
@@ -38,6 +39,8 @@ namespace CadDev
              0.0f,  0.5f, 0.0f  //Top vertex
             };
 
+        readonly float[] paralPoints = OtherPoints.GetParal(2, 2, 2);
+
         int VertexBufferObject;
         int VertexArrayObject;
 
@@ -49,13 +52,16 @@ namespace CadDev
 
             VertexBufferObject = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferObject);
-            GL.BufferData(BufferTarget.ArrayBuffer, Points.Length * sizeof(float), Points, BufferUsageHint.StaticDraw);
+            
+            GL.BufferData(BufferTarget.ArrayBuffer, paralPoints.Length * sizeof(float), paralPoints, BufferUsageHint.StaticDraw);
 
             VertexArrayObject = GL.GenVertexArray();
             GL.BindVertexArray(VertexArrayObject);
 
             GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3*sizeof(float), 0);
             GL.EnableVertexAttribArray(0);
+
+            GL.Enable(EnableCap.DepthTest);
 
             base.OnLoad();
         }
@@ -89,8 +95,8 @@ namespace CadDev
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
-            GL.Clear(ClearBufferMask.ColorBufferBit);
-
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            
             if (shader != null) ((Shader)shader).Use();
 
             view = Matrix4.LookAt(position, position + front, up);
@@ -99,8 +105,10 @@ namespace CadDev
             if (shader != null) ((Shader)shader).SetMatrix4("view", view);
             if (shader != null) ((Shader)shader).SetMatrix4("projection", projection);
 
+            GL.PointSize(6);
+
             GL.BindVertexArray(VertexArrayObject);
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
+            GL.DrawArrays(PrimitiveType.Triangles, 0, paralPoints.Length);
 
             Context.SwapBuffers();
             base.OnRenderFrame(e);

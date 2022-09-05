@@ -114,7 +114,7 @@ namespace CadDev
             GC.SuppressFinalize(this);
         }
 
-                public void SetMatrix4(string name, Matrix4 data)
+        public void SetMatrix4(string name, Matrix4 data)
         {
             GL.UseProgram(Handle);
             GL.UniformMatrix4(_uniformLocations[name], true, ref data);

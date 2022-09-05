@@ -108,6 +108,7 @@ namespace CadDev
             GL.PointSize(6);
 
             GL.BindVertexArray(VertexArrayObject);
+            //GL.DrawArrays(BeginMode.Quads, 0, paralPoints.Length);
             GL.DrawArrays(PrimitiveType.Triangles, 0, paralPoints.Length);
 
             Context.SwapBuffers();
@@ -150,11 +151,11 @@ namespace CadDev
             {
                 position += up * speed * (float)e.Time; //Up 
             }
-            if (KeyboardState.IsKeyDown(Keys.LeftShift))
+            if (KeyboardState.IsKeyDown(Keys.C))
             {
                 position -= up * speed * (float)e.Time; //Down
             }
-            if (KeyboardState.IsKeyDown(Keys.C))
+            if (KeyboardState.IsKeyDown(Keys.R))
             {
                 firstMove = true;
                 yaw = -90;

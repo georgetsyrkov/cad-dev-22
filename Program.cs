@@ -19,7 +19,6 @@ namespace CadDev
             if (fScreen)
             {
                 sets = new OpenTK.Windowing.Desktop.NativeWindowSettings();
-                sets.IsFullscreen = true;
                 sets.WindowState = OpenTK.Windowing.Common.WindowState.Fullscreen;
             }
 
